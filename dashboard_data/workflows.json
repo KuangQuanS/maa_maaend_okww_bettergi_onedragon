@@ -1,0 +1,40 @@
+[
+  {
+    "id": "all_serial",
+    "name": "四个一起执行",
+    "steps": [
+      "maa",
+      "maaend",
+      "bettergi",
+      "okww"
+    ],
+    "continue_on_failure": false
+  },
+  {
+    "id": "maa_then_maaend",
+    "name": "MAA -> MaaEnd",
+    "steps": [
+      "maa",
+      "maaend"
+    ],
+    "continue_on_failure": false
+  },
+  {
+    "id": "maa_then_bettergi",
+    "name": "MAA -> BetterGI",
+    "steps": [
+      "maa",
+      "bettergi"
+    ],
+    "continue_on_failure": false
+  },
+  {
+    "id": "maa_then_okww",
+    "name": "MAA -> OK-WW",
+    "steps": [
+      "maa",
+      "okww"
+    ],
+    "continue_on_failure": false
+  }
+]

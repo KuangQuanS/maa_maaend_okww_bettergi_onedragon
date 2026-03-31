@@ -1,0 +1,99 @@
+{
+  "version": 1,
+  "apps": [
+    {
+      "id": "maa",
+      "exe_path": "D:\\maa\\MAA.exe",
+      "enabled": true,
+      "start_strategy": "launch_only",
+      "done_strategy": "process_exit",
+      "timeout_sec": 7200,
+      "start_resources": [],
+      "run_resources": [
+        "app:maa"
+      ],
+      "cleanup_template": "none"
+    },
+    {
+      "id": "maaend",
+      "exe_path": "D:\\maaend\\MaaEnd.exe",
+      "enabled": true,
+      "start_strategy": "launch_only",
+      "done_strategy": "log_and_window_idle",
+      "timeout_sec": 10800,
+      "start_resources": [],
+      "run_resources": [
+        "foreground_automation",
+        "window:endfield"
+      ],
+      "cleanup_template": "close_game_then_app"
+    },
+    {
+      "id": "bettergi",
+      "exe_path": "D:\\BetterGI\\BetterGI.exe",
+      "enabled": true,
+      "start_strategy": "command_line_start_one_dragon",
+      "done_strategy": "process_exit",
+      "timeout_sec": 10800,
+      "start_resources": [],
+      "run_resources": [
+        "foreground_automation",
+        "window:bettergi"
+      ],
+      "cleanup_template": "none"
+    },
+    {
+      "id": "okww",
+      "exe_path": "D:\\ok-ww\\ok-ww.exe",
+      "enabled": true,
+      "start_strategy": "command_line_task_1",
+      "done_strategy": "process_exit",
+      "timeout_sec": 10800,
+      "start_resources": [],
+      "run_resources": [
+        "foreground_automation",
+        "app:okww"
+      ],
+      "cleanup_template": "none"
+    }
+  ],
+  "parallel_overrides": {
+    "maa": true,
+    "maaend": false,
+    "bettergi": false,
+    "okww": false
+  },
+  "ocr_actions": {
+    "bettergi": {
+      "action_type": "ocr_click_text",
+      "window_title": "",
+      "window_class": "",
+      "roi": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "match_target": "",
+      "click_offset": {
+        "x": 0,
+        "y": 0
+      },
+      "max_retry": 3,
+      "template_path": "",
+      "enabled": false
+    }
+  },
+  "sequence_order": [
+    "maa",
+    "bettergi",
+    "okww",
+    "maaend"
+  ],
+  "sequence_enabled": {
+    "maa": true,
+    "bettergi": true,
+    "okww": true,
+    "maaend": true
+  }
+}

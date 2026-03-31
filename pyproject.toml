@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "multi-run-dashboard"
+version = "0.1.0"
+description = "Windows dashboard for coordinating MAA, MaaEnd, and BetterGI."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "OpenAI Codex" }]
+dependencies = [
+  "PySide6>=6.11,<7",
+  "mss>=10,<11",
+  "opencv-python>=4.10,<5",
+  "rapidocr-onnxruntime>=1.4,<2",
+]
+
+[project.scripts]
+multi-run-dashboard = "dashboard_app.__main__:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

@@ -1,0 +1,37 @@
+Metadata-Version: 2.4
+Name: multi-run-dashboard
+Version: 0.1.0
+Summary: Windows dashboard for coordinating MAA, MaaEnd, and BetterGI.
+Author: OpenAI Codex
+License: MIT
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: PySide6<7,>=6.11
+Requires-Dist: mss<11,>=10
+Requires-Dist: opencv-python<5,>=4.10
+Requires-Dist: rapidocr-onnxruntime<2,>=1.4
+Provides-Extra: build
+Requires-Dist: pyinstaller<7,>=6.0; extra == "build"
+
+# Multi Run Dashboard
+
+Windows dashboard for coordinating:
+
+- `D:\maa\MAA.exe`
+- `D:\maaend\MaaEnd.exe`
+- `D:\BetterGI\BetterGI.exe`
+
+## Development
+
+```powershell
+D:\python\python.exe -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -e .[build]
+.\.venv\Scripts\python.exe -m dashboard_app
+```
+
+Smoke test:
+
+```powershell
+$env:QT_QPA_PLATFORM='offscreen'
+.\.venv\Scripts\python.exe -m dashboard_app --smoke-test
+```

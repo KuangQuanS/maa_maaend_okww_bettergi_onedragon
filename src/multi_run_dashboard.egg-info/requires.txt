@@ -1,0 +1,7 @@
+PySide6<7,>=6.11
+mss<11,>=10
+opencv-python<5,>=4.10
+rapidocr-onnxruntime<2,>=1.4
+
+[build]
+pyinstaller<7,>=6.0
