@@ -1,12 +1,13 @@
 [
   {
     "id": "all_serial",
-    "name": "四个一起执行",
+    "name": "五个一起执行",
     "steps": [
       "maa",
       "maaend",
       "bettergi",
-      "okww"
+      "okww",
+      "march7th"
     ],
     "continue_on_failure": false
   },
@@ -34,6 +35,15 @@
     "steps": [
       "maa",
       "okww"
+    ],
+    "continue_on_failure": false
+  },
+  {
+    "id": "maa_then_march7th",
+    "name": "MAA -> March 7th Assistant",
+    "steps": [
+      "maa",
+      "march7th"
     ],
     "continue_on_failure": false
   }

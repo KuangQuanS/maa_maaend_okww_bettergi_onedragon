@@ -3,7 +3,7 @@
   "apps": [
     {
       "id": "maa",
-      "exe_path": "D:\\maa\\MAA.exe",
+      "exe_path": "D:/eryouline/softwares/maa/MAA.exe",
       "enabled": true,
       "start_strategy": "launch_only",
       "done_strategy": "process_exit",
@@ -16,7 +16,7 @@
     },
     {
       "id": "maaend",
-      "exe_path": "D:\\maaend\\MaaEnd.exe",
+      "exe_path": "D:/eryouline/softwares/maaend/MaaEnd.exe",
       "enabled": true,
       "start_strategy": "launch_only",
       "done_strategy": "log_and_window_idle",
@@ -30,7 +30,7 @@
     },
     {
       "id": "bettergi",
-      "exe_path": "D:\\BetterGI\\BetterGI.exe",
+      "exe_path": "D:/eryouline/softwares/BetterGI/BetterGI.exe",
       "enabled": true,
       "start_strategy": "command_line_start_one_dragon",
       "done_strategy": "process_exit",
@@ -44,7 +44,7 @@
     },
     {
       "id": "okww",
-      "exe_path": "D:\\ok-ww\\ok-ww.exe",
+      "exe_path": "D:/eryouline/softwares/ok-ww/ok-ww.exe",
       "enabled": true,
       "start_strategy": "command_line_task_1",
       "done_strategy": "process_exit",
@@ -55,13 +55,28 @@
         "app:okww"
       ],
       "cleanup_template": "none"
+    },
+    {
+      "id": "march7th",
+      "exe_path": "D:/eryouline/softwares/March7thAssistant_full/March7th Launcher.exe",
+      "enabled": true,
+      "start_strategy": "command_line_main_e",
+      "done_strategy": "process_exit",
+      "timeout_sec": 10800,
+      "start_resources": [],
+      "run_resources": [
+        "foreground_automation",
+        "app:march7th"
+      ],
+      "cleanup_template": "none"
     }
   ],
   "parallel_overrides": {
     "maa": true,
     "maaend": false,
     "bettergi": false,
-    "okww": false
+    "okww": false,
+    "march7th": false
   },
   "ocr_actions": {
     "bettergi": {
@@ -88,12 +103,14 @@
     "maa",
     "bettergi",
     "okww",
-    "maaend"
+    "maaend",
+    "march7th"
   ],
   "sequence_enabled": {
-    "maa": true,
-    "bettergi": true,
+    "maa": false,
+    "bettergi": false,
     "okww": true,
-    "maaend": true
+    "maaend": true,
+    "march7th": true
   }
 }

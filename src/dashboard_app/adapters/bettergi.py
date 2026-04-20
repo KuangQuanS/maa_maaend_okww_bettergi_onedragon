@@ -14,10 +14,6 @@ from .base import AdapterError, BaseAdapter
 
 
 class BetterGIAdapter(BaseAdapter):
-    CONFIG_PATH = Path(r"D:\BetterGI\User\config.json")
-    LOG_DIR = Path(r"D:\BetterGI\log")
-    TASK_PROGRESS_DIR = Path(r"D:\BetterGI\log\task_progress")
-    EXECUTION_DIR = Path(r"D:\BetterGI\log\ExecutionRecords")
     CLI_START_ARG = "--startOneDragon"
     WINDOW_DETECT_TIMEOUT_SEC = 25
     COMPLETE_MARKERS = (
@@ -26,10 +22,23 @@ class BetterGIAdapter(BaseAdapter):
         "游戏已退出，BetterGI 自动停止截图器",
     )
 
-    def _load_config(self) -> dict[str, Any]:
-        if not self.CONFIG_PATH.exists():
+    def _root_dir(self, ctx: ExecutionContext) -> Path:
+        return Path(ctx.app_spec.exe_path).parent
+
+    def _config_path(self, ctx: ExecutionContext) -> Path:
+        return self._root_dir(ctx) / "User" / "config.json"
+
+    def _log_dir(self, ctx: ExecutionContext) -> Path:
+        return self._root_dir(ctx) / "log"
+
+    def _task_progress_dir(self, ctx: ExecutionContext) -> Path:
+        return self._log_dir(ctx) / "task_progress"
+
+    def _load_config(self, ctx: ExecutionContext) -> dict[str, Any]:
+        config_path = self._config_path(ctx)
+        if not config_path.exists():
             return {}
-        with self.CONFIG_PATH.open("r", encoding="utf-8", errors="ignore") as handle:
+        with config_path.open("r", encoding="utf-8", errors="ignore") as handle:
             return json.load(handle)
 
     def _latest_file(self, folder: Path, pattern: str) -> Path | None:
@@ -49,7 +58,7 @@ class BetterGIAdapter(BaseAdapter):
 
     def validate(self, ctx: ExecutionContext) -> list[str]:
         warnings = super().validate(ctx)
-        config = self._load_config()
+        config = self._load_config(ctx)
         selected_flow = str(config.get("selectedOneDragonFlowConfigName", "")).strip() if isinstance(config, dict) else ""
         if not selected_flow:
             warnings.append("BetterGI 的 selectedOneDragonFlowConfigName 为空。")
@@ -61,7 +70,7 @@ class BetterGIAdapter(BaseAdapter):
             raise AdapterError(f"可执行文件不存在：{path}")
 
         existing_pids = self._tracked_pids()
-        config = self._load_config()
+        config = self._load_config(ctx)
         selected_flow = str(config.get("selectedOneDragonFlowConfigName", "")).strip() if isinstance(config, dict) else ""
 
         ctx.process = popen_hidden(
@@ -87,7 +96,7 @@ class BetterGIAdapter(BaseAdapter):
 
         ctx.metadata["main_window_hwnd"] = new_window.hwnd
         ctx.metadata["tracked_pid"] = new_window.pid
-        latest_log = self._latest_file(self.LOG_DIR, "better-genshin-impact*.log")
+        latest_log = self._latest_file(self._log_dir(ctx), "better-genshin-impact*.log")
         if latest_log is not None:
             ctx.metadata["main_log_tail"] = FileTail(latest_log, encodings=("utf-8", "gb18030"))
         ctx.log(
@@ -98,8 +107,8 @@ class BetterGIAdapter(BaseAdapter):
         ctx.metadata["command_started_at"] = time.time()
         ctx.log(f"BetterGI 已通过命令行 {self.CLI_START_ARG} 触发当前选中的一条龙配置。")
 
-    def _progress_summary(self) -> str:
-        latest = self._latest_file(self.TASK_PROGRESS_DIR, "*.json")
+    def _progress_summary(self, ctx: ExecutionContext) -> str:
+        latest = self._latest_file(self._task_progress_dir(ctx), "*.json")
         if latest is None:
             return "BetterGI 正在运行。"
         try:
@@ -137,7 +146,7 @@ class BetterGIAdapter(BaseAdapter):
                 summary="BetterGI 日志已确认一条龙完成并退出。",
                 result="success",
             )
-        summary = self._progress_summary()
+        summary = self._progress_summary(ctx)
         if lines:
             summary = lines[-1]
 

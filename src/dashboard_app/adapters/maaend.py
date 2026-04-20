@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import ctypes
 import json
@@ -16,11 +16,10 @@ from .base import AdapterError, BaseAdapter
 
 
 class MaaEndAdapter(BaseAdapter):
-    CONFIG_PATH = Path(r"D:\maaend\config\mxu-MaaEnd.json")
-    DEBUG_DIR = Path(r"D:\maaend\debug")
-    GAME_PATH = Path(r"D:\Hypergryph Launcher\games\Arknights Endfield\Endfield.exe")
-    GAME_WAIT_TIMEOUT_SEC = 30
-    GAME_POST_WINDOW_DELAY_SEC = 15
+    DEFAULT_GAME_PATH = Path(r"D:\Hypergryph Launcher\games\Arknights Endfield\Endfield.exe")
+    GAME_WAIT_TIMEOUT_SEC = 60
+    GAME_POST_WINDOW_DELAY_SEC = 30
+    HOTKEY_FALLBACK_DELAY_SEC = 30
 
     def _is_elevated(self) -> bool:
         try:
@@ -28,10 +27,20 @@ class MaaEndAdapter(BaseAdapter):
         except Exception:
             return False
 
-    def _load_config(self) -> dict[str, Any]:
-        if not self.CONFIG_PATH.exists():
+    def _root_dir(self, ctx: ExecutionContext) -> Path:
+        return Path(ctx.app_spec.exe_path).parent
+
+    def _config_path(self, ctx: ExecutionContext) -> Path:
+        return self._root_dir(ctx) / "config" / "mxu-MaaEnd.json"
+
+    def _debug_dir(self, ctx: ExecutionContext) -> Path:
+        return self._root_dir(ctx) / "debug"
+
+    def _load_config(self, ctx: ExecutionContext) -> dict[str, Any]:
+        config_path = self._config_path(ctx)
+        if not config_path.exists():
             return {}
-        with self.CONFIG_PATH.open("r", encoding="utf-8", errors="ignore") as handle:
+        with config_path.open("r", encoding="utf-8", errors="ignore") as handle:
             return json.load(handle)
 
     def _find_nested(self, value: Any, key: str) -> Any | None:
@@ -51,13 +60,14 @@ class MaaEndAdapter(BaseAdapter):
 
     def validate(self, ctx: ExecutionContext) -> list[str]:
         warnings = super().validate(ctx)
-        if not self.GAME_PATH.exists():
-            warnings.append(f"找不到终末地可执行文件：{self.GAME_PATH}")
+        config = self._load_config(ctx)
+        game_path = self._game_path(ctx, config)
+        if not game_path.exists():
+            warnings.append(f"找不到终末地可执行文件：{game_path}")
         elif not self._is_elevated():
             warnings.append("启动终末地需要管理员权限，请以管理员身份运行面板。")
-        config = self._load_config()
         if not config:
-            warnings.append(f"找不到 MaaEnd 配置文件：{self.CONFIG_PATH}")
+            warnings.append(f"找不到 MaaEnd 配置文件：{self._config_path(ctx)}")
             return warnings
         if not bool(self._find_nested(config, "autoRunOnLaunch")):
             warnings.append("MaaEnd 的 autoRunOnLaunch 未开启。")
@@ -65,8 +75,16 @@ class MaaEndAdapter(BaseAdapter):
             warnings.append("MaaEnd 缺少 autoStartInstanceId。")
         return warnings
 
-    def _latest_log(self, pattern: str) -> Path | None:
-        matches = sorted(self.DEBUG_DIR.glob(pattern), key=lambda item: item.stat().st_mtime)
+    def _game_path(self, ctx: ExecutionContext, config: dict[str, Any] | None = None) -> Path:
+        config = config if config is not None else self._load_config(ctx)
+        for key in ("connectedProgramPath", "program"):
+            value = self._find_nested(config, key)
+            if isinstance(value, str) and value.strip().lower().endswith("endfield.exe"):
+                return Path(value)
+        return self.DEFAULT_GAME_PATH
+
+    def _latest_log(self, ctx: ExecutionContext, pattern: str) -> Path | None:
+        matches = sorted(self._debug_dir(ctx).glob(pattern), key=lambda item: item.stat().st_mtime)
         return matches[-1] if matches else None
 
     def _target_windows(self) -> list:
@@ -84,13 +102,14 @@ class MaaEndAdapter(BaseAdapter):
         return image_exists("Endfield.exe")
 
     def _launch_game_and_wait(self, ctx: ExecutionContext) -> None:
+        game_path = self._game_path(ctx)
         if self._target_windows():
             ctx.metadata["saw_target_window"] = True
             ctx.log("检测到终末地已在运行，跳过重复启动。")
             self._wait_after_window_detected(ctx)
             return
-        if not self.GAME_PATH.exists():
-            ctx.log(f"未找到终末地可执行文件：{self.GAME_PATH}，将直接启动 MaaEnd。", level="WARN")
+        if not game_path.exists():
+            ctx.log(f"未找到终末地可执行文件：{game_path}，将直接启动 MaaEnd。", level="WARN")
             return
 
         if self._game_process_running():
@@ -98,9 +117,9 @@ class MaaEndAdapter(BaseAdapter):
 
         try:
             game_process = popen_hidden(
-                [str(self.GAME_PATH)],
+                [str(game_path)],
                 new_process_group=True,
-                cwd=str(self.GAME_PATH.parent),
+                cwd=str(game_path.parent),
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 text=True,
@@ -110,7 +129,9 @@ class MaaEndAdapter(BaseAdapter):
                 raise AdapterError("启动终末地需要管理员权限，请以管理员身份运行面板。") from exc
             raise
         ctx.metadata["game_pid"] = game_process.pid
-        ctx.log(f"终末地已触发启动，PID={game_process.pid}，等待窗口出现或 30 秒超时。")
+        ctx.log(
+            f"终末地已触发启动，PID={game_process.pid}，等待窗口出现或 {self.GAME_WAIT_TIMEOUT_SEC} 秒超时。"
+        )
 
         window = wait_for_window(
             timeout_sec=self.GAME_WAIT_TIMEOUT_SEC,
@@ -120,7 +141,7 @@ class MaaEndAdapter(BaseAdapter):
             ctx.metadata["saw_target_window"] = True
             self._wait_after_window_detected(ctx)
             return
-        ctx.log("等待 Endfield 窗口超过 30 秒，继续启动 MaaEnd。", level="WARN")
+        ctx.log(f"等待 Endfield 窗口超过 {self.GAME_WAIT_TIMEOUT_SEC} 秒，继续启动 MaaEnd。", level="WARN")
 
     def launch(self, ctx: ExecutionContext) -> None:
         self._launch_game_and_wait(ctx)
@@ -133,9 +154,9 @@ class MaaEndAdapter(BaseAdapter):
         ctx.metadata["getclientrect_errors"] = 0
         ctx.metadata["saw_target_window"] = bool(ctx.metadata.get("saw_target_window"))
         ctx.metadata["window_missing_since"] = None
-        ctx.metadata["config"] = self._load_config()
-        latest_web = self._latest_log("mxu-web-*.log")
-        latest_maa = self._latest_log("maa.log")
+        ctx.metadata["config"] = self._load_config(ctx)
+        latest_web = self._latest_log(ctx, "mxu-web-*.log")
+        latest_maa = self._latest_log(ctx, "maa.log")
         if latest_web:
             ctx.metadata["web_tail"] = FileTail(latest_web)
         if latest_maa:
@@ -163,12 +184,17 @@ class MaaEndAdapter(BaseAdapter):
             return
         if ctx.metadata.get("task_activity_detected"):
             return
-        if time.time() - float(ctx.metadata.get("launch_time", time.time())) < 15:
+        if time.time() - float(ctx.metadata.get("launch_time", time.time())) < self.HOTKEY_FALLBACK_DELAY_SEC:
             return
         hotkey = self._find_nested(ctx.metadata.get("config", {}), "startTasks")
         if not hotkey:
             return
-        send_hotkey(str(hotkey))
+        try:
+            send_hotkey(str(hotkey))
+        except Exception as exc:
+            ctx.metadata["hotkey_sent"] = True
+            ctx.log(f"MaaEnd 兜底启动热键发送失败：{hotkey}，已忽略本次兜底。错误：{exc}", level="WARN")
+            return
         ctx.metadata["hotkey_sent"] = True
         ctx.log(f"已发送 MaaEnd 兜底启动热键：{hotkey}。")
 

@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from threading import Event, RLock, Thread
 from typing import Any
 
-from .adapters import AdapterError, BetterGIAdapter, MAAAdapter, MaaEndAdapter, OkWWAdapter
+from .adapters import AdapterError, BetterGIAdapter, MAAAdapter, MaaEndAdapter, March7thAdapter, OkWWAdapter
 from .defaults import app_label, default_app_specs, default_workflows, summary_label
 from .event_log import EventLog
 from .models import AppSpec, RunRecord, RunState, TargetType, WorkflowSpec, utcnow_iso
@@ -92,6 +92,7 @@ class DashboardController:
             "maaend": MaaEndAdapter(),
             "bettergi": BetterGIAdapter(),
             "okww": OkWWAdapter(),
+            "march7th": March7thAdapter(),
         }
         self.resource_manager = ResourceManager()
         self._lock = RLock()
@@ -124,7 +125,7 @@ class DashboardController:
             if app.run_resources != template.run_resources:
                 app.run_resources = list(template.run_resources)
                 changed = True
-        expected_parallel = {"maa": True, "maaend": False, "bettergi": False, "okww": False}
+        expected_parallel = {"maa": True, "maaend": False, "bettergi": False, "okww": False, "march7th": False}
         for app_id, enabled in expected_parallel.items():
             if self.settings.parallel_overrides.get(app_id) != enabled:
                 self.settings.parallel_overrides[app_id] = enabled
@@ -150,7 +151,7 @@ class DashboardController:
     def _normalize_workflows(self) -> None:
         template_list = default_workflows()
         templates = {workflow.id: workflow for workflow in template_list}
-        obsolete_ids = {"maa_only", "maaend_only", "bettergi_only", "okww_only"}
+        obsolete_ids = {"maa_only", "maaend_only", "bettergi_only", "okww_only", "march7th_only"}
         filtered_workflows = [workflow for workflow in self.workflows if workflow.id not in obsolete_ids]
         changed = len(filtered_workflows) != len(self.workflows)
         if changed:

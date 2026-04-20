@@ -7,10 +7,11 @@ from .models import AppSpec, DashboardSettings, OCRActionSpec, RunState, Workflo
 
 
 APP_PATHS = {
-    "maa": Path(r"D:\maa\MAA.exe"),
-    "maaend": Path(r"D:\maaend\MaaEnd.exe"),
-    "bettergi": Path(r"D:\BetterGI\BetterGI.exe"),
-    "okww": Path(r"D:\ok-ww\ok-ww.exe"),
+    "maa": Path(r"D:\eryouline\softwares\maa\MAA.exe"),
+    "maaend": Path(r"D:\eryouline\softwares\maaend\MaaEnd.exe"),
+    "bettergi": Path(r"D:\eryouline\softwares\BetterGI\BetterGI.exe"),
+    "okww": Path(r"D:\eryouline\softwares\ok-ww\ok-ww.exe"),
+    "march7th": Path(r"D:\eryouline\softwares\March7thAssistant_full\March7th Launcher.exe"),
 }
 
 
@@ -20,6 +21,7 @@ def app_label(app_id: str) -> str:
         "maaend": "MaaEnd",
         "bettergi": "BetterGI",
         "okww": "OK-WW",
+        "march7th": "March 7th Assistant",
     }.get(app_id, app_id)
 
 
@@ -29,6 +31,7 @@ def app_subtitle(app_id: str) -> str:
         "maaend": "MaaEnd 自动化",
         "bettergi": "BetterGI 一条龙",
         "okww": "OK-WW 命令行任务",
+        "march7th": "March 7th Assistant 命令行任务",
     }.get(app_id, app_id)
 
 
@@ -96,6 +99,9 @@ def summary_label(summary: str) -> str:
         "OK-WW 未成功启动。": "OK-WW 未成功启动。",
         "OK-WW 正在运行。": "OK-WW 正在运行。",
         "OK-WW 已在任务结束后退出。": "OK-WW 已在任务结束后退出。",
+        "March 7th Assistant 未成功启动。": "March 7th Assistant 未成功启动。",
+        "March 7th Assistant 正在运行。": "March 7th Assistant 正在运行。",
+        "March 7th Assistant 已在任务结束后退出。": "March 7th Assistant 已在任务结束后退出。",
     }
     if text in exact:
         return exact[text]
@@ -115,6 +121,7 @@ def summary_label(summary: str) -> str:
         (r"^MaaEnd exited with code (-?\d+)\.$", r"MaaEnd 已退出，退出码：\1。"),
         (r"^BetterGI main process exited too early after command-line start \((.+)\)\.$", r"BetterGI 在命令行启动后过早退出（\1）。"),
         (r"^OK-WW 已退出，退出码：(-?\d+)\。$", r"OK-WW 已退出，退出码：\1。"),
+        (r"^March 7th Assistant 已退出，退出码：(-?\d+)\.$", r"March 7th Assistant 已退出，退出码：\1。"),
     ]
     for pattern, replacement in patterns:
         converted = re.sub(pattern, replacement, text)
@@ -177,23 +184,34 @@ def default_app_specs() -> list[AppSpec]:
             run_resources=["foreground_automation", "app:okww"],
             cleanup_template="none",
         ),
+        AppSpec(
+            id="march7th",
+            exe_path=str(APP_PATHS["march7th"]) if APP_PATHS["march7th"].exists() else "",
+            start_strategy="command_line_main_e",
+            done_strategy="process_exit",
+            timeout_sec=10800,
+            start_resources=[],
+            run_resources=["foreground_automation", "app:march7th"],
+            cleanup_template="none",
+        ),
     ]
 
 
 def default_workflows() -> list[WorkflowSpec]:
     return [
-        WorkflowSpec(id="all_serial", name="四个一起执行", steps=["maa", "maaend", "bettergi", "okww"]),
+        WorkflowSpec(id="all_serial", name="五个一起执行", steps=["maa", "maaend", "bettergi", "okww", "march7th"]),
         WorkflowSpec(id="maa_then_maaend", name="MAA -> MaaEnd", steps=["maa", "maaend"]),
         WorkflowSpec(id="maa_then_bettergi", name="MAA -> BetterGI", steps=["maa", "bettergi"]),
         WorkflowSpec(id="maa_then_okww", name="MAA -> OK-WW", steps=["maa", "okww"]),
+        WorkflowSpec(id="maa_then_march7th", name="MAA -> March 7th Assistant", steps=["maa", "march7th"]),
     ]
 
 
 def default_settings() -> DashboardSettings:
     return DashboardSettings(
         apps=default_app_specs(),
-        parallel_overrides={"maa": True, "maaend": False, "bettergi": False, "okww": False},
+        parallel_overrides={"maa": True, "maaend": False, "bettergi": False, "okww": False, "march7th": False},
         ocr_actions={"bettergi": OCRActionSpec(enabled=False)},
-        sequence_order=["maa", "maaend", "bettergi", "okww"],
-        sequence_enabled={"maa": True, "maaend": True, "bettergi": True, "okww": True},
+        sequence_order=["maa", "maaend", "bettergi", "okww", "march7th"],
+        sequence_enabled={"maa": True, "maaend": True, "bettergi": True, "okww": True, "march7th": True},
     )

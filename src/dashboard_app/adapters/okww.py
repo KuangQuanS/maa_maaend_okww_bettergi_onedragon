@@ -13,9 +13,6 @@ from .base import AdapterError, BaseAdapter
 
 class OkWWAdapter(BaseAdapter):
     CLI_ARGS = ["-t", "1", "-e"]
-    ROOT_DIR = Path(r"D:\ok-ww")
-    LAUNCHER_LOG_DIR = ROOT_DIR / "logs"
-    SCRIPT_LOG_PATH = ROOT_DIR / "data" / "apps" / "ok-ww" / "working" / "logs" / "ok-script.log"
     GAME_IMAGE_NAME = "Client-Win64-Shipping.exe"
     CHILD_PID_PATTERN = re.compile(r"Command spawned pid=(\d+)")
     SCRIPT_PID_PATTERN = re.compile(r"pid=(\d+)")
@@ -32,6 +29,18 @@ class OkWWAdapter(BaseAdapter):
         "DeviceManager:stop_hwnd",
     )
 
+    def _root_dir(self, ctx: ExecutionContext) -> Path:
+        root = str(ctx.metadata.get("root_dir", "")).strip()
+        if root:
+            return Path(root)
+        return Path(ctx.app_spec.exe_path).parent
+
+    def _launcher_log_dir(self, ctx: ExecutionContext) -> Path:
+        return self._root_dir(ctx) / "logs"
+
+    def _script_log_path(self, ctx: ExecutionContext) -> Path:
+        return self._root_dir(ctx) / "data" / "apps" / "ok-ww" / "working" / "logs" / "ok-script.log"
+
     def _latest_file(self, folder: Path, pattern: str) -> Path | None:
         if not folder.exists():
             return None
@@ -39,11 +48,11 @@ class OkWWAdapter(BaseAdapter):
         return matches[-1] if matches else None
 
     def _setup_log_tails(self, ctx: ExecutionContext) -> None:
-        launcher_log = self._latest_file(self.LAUNCHER_LOG_DIR, "app.*")
+        launcher_log = self._latest_file(self._launcher_log_dir(ctx), "app.*")
         if launcher_log is not None:
             launcher_tail = FileTail(launcher_log, encodings=("utf-8", "gb18030"))
             ctx.metadata["launcher_log_tail"] = launcher_tail
-        script_tail = FileTail(self.SCRIPT_LOG_PATH, encodings=("utf-8", "gb18030"))
+        script_tail = FileTail(self._script_log_path(ctx), encodings=("utf-8", "gb18030"))
         ctx.metadata["script_log_tail"] = script_tail
         ctx.metadata["script_log_start_pos"] = script_tail.position
 
@@ -104,7 +113,7 @@ class OkWWAdapter(BaseAdapter):
                 ctx.metadata["shutdown_seen_at"] = time.time()
 
     def _sync_script_state_from_file(self, ctx: ExecutionContext) -> None:
-        excerpt = self._read_text_since_start(ctx, self.SCRIPT_LOG_PATH)
+        excerpt = self._read_text_since_start(ctx, self._script_log_path(ctx))
         if not excerpt:
             return
         if not float(ctx.metadata.get("success_seen_at", 0.0) or 0.0):
@@ -161,6 +170,7 @@ class OkWWAdapter(BaseAdapter):
         if not path.exists():
             raise AdapterError(f"可执行文件不存在：{path}")
 
+        ctx.metadata["root_dir"] = str(path.parent)
         self._setup_log_tails(ctx)
         ctx.process = popen_hidden(
             [str(path), *self.CLI_ARGS],
